@@ -1,10 +1,16 @@
 {
   "expo": {
-    "name": "app",
-    "slug": "app",
+    "name": "Iot Home",
+    "slug": "iot-home",
     "version": "1.0.0",
-    "assetBundlePatterns": [
-      "**/*"
-    ]
+    "assetBundlePatterns": ["**/*"],
+    "ios": {
+      "bundleIdentifier": "com.vargaskijonas.iothome",
+      "buildNumber": "1.0.0"
+    },
+    "android": {
+      "package": "com.vargaskijonas.iothome",
+      "versionCode": 1
+    }
   }
 }

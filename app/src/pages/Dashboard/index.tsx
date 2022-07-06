@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react'
-import { View, StyleSheet, Text, TouchableOpacity } from 'react-native'
-import Paho from 'paho-mqtt'
-import { Container } from './styles'
+import { View, Text } from 'react-native'
+import { client } from '../../config/mqtt'
+import { Container, Button } from './styles'
 
 interface IPinState {
   pO1: number
@@ -13,120 +13,68 @@ interface IPinState {
   pO7: number
 }
 
-const defaultPinState = {
-  pO1: 0,
-  pO2: 0,
-  pO3: 0,
-  pO4: 0,
-  pO5: 0,
-  pO6: 0,
-  pO7: 0,
-}
-
-const client = new Paho.Client('broker.mqttdashboard.com', Number(8000), '/mqtt', 'expo-rn-client-id@unique')
-
-const connect = () => {
-  client.connect({
-    keepAliveInterval: 0,
-    reconnect: true,
-    timeout: 10,
-    onSuccess: () => {
-      client.subscribe('ngkKzLHfUh@5C:CF:7F:4C:4C:1E', { qos: 1 })
-    },
-  })
-}
+const defaultPinState = { pO1: 0, pO2: 0, pO3: 0, pO4: 0, pO5: 0, pO6: 0, pO7: 0 }
+const topic = 'ngkKzLHfUh@5C:CF:7F:4C:4C:1E'
 
 export function Dashboard() {
-  const [lastMessage, setLastMessage] = useState('')
   const [pinState, setPinState] = useState<IPinState>(() => defaultPinState)
+  const [isConnected, setIsConnected] = useState(false)
 
   function changePin(pin: Number) {
     const state = { ...defaultPinState, ...pinState }
     state[`pO${pin}`] = !state[`pO${pin}`] ? 1 : 0
+    setPinState(state)
 
-    if (!client.isConnected()) connect()
-    if (client.isConnected())
-      client.send(
-        'ngkKzLHfUh@5C:CF:7F:4C:4C:1E',
-        JSON.stringify({ action: 'syncPinState', payload: { ...state } }),
-        1,
-        true,
-      )
+    const message = JSON.stringify({ action: 'syncPinState', payload: { ...state } })
+    if (isConnected) client.send(topic, message, 1, true)
   }
 
   useEffect(() => {
+    client.onConnectionLost = () => setIsConnected(false)
     client.onMessageArrived = (message) => {
-      setLastMessage(message.payloadString)
-
       const { action, payload } = JSON.parse(message.payloadString)
       if (action === 'syncPinState') setPinState(payload)
     }
 
-    connect()
+    if (!isConnected) {
+      client.connect({
+        reconnect: true,
+        onSuccess: () => {
+          setIsConnected(true)
+          client.subscribe(topic, { qos: 1 })
+        },
+      })
+    }
   }, [])
-
-  const styles = StyleSheet.create({
-    button: {
-      paddingHorizontal: 70,
-      paddingVertical: 14,
-      margin: 6,
-      backgroundColor: '#f1f1f1',
-      borderRadius: 4,
-    },
-  })
 
   return (
     <Container>
-      <Text style={{ fontWeight: '600', color: client.isConnected() ? '#0f0' : '#f00' }}>
-        {client.isConnected() ? 'Conectado' : 'Desconectado'}
+      <Text style={{ fontWeight: '600', color: isConnected ? '#0f0' : '#f00' }}>
+        {isConnected ? 'Conectado' : 'Desconectado'}
       </Text>
-      <Text style={{ textAlign: 'center', margin: 5 }}>
-        Último estado:
-        {lastMessage}
-      </Text>
+
       <View style={{ marginTop: 30 }}>
-        <TouchableOpacity
-          onPress={() => changePin(1)}
-          style={[styles.button, { backgroundColor: pinState.pO1 ? '#48ef1f' : '#ccc' }]}
-        >
+        <Button active={!!pinState.pO1} onPress={() => changePin(1)}>
           <Text>Relé 1</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          onPress={() => changePin(2)}
-          style={[styles.button, { backgroundColor: pinState.pO2 ? '#48ef1f' : '#ccc' }]}
-        >
+        </Button>
+        <Button active={!!pinState.pO2} onPress={() => changePin(2)}>
           <Text>Relé 2</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          onPress={() => changePin(3)}
-          style={[styles.button, { backgroundColor: pinState.pO3 ? '#48ef1f' : '#ccc' }]}
-        >
+        </Button>
+        <Button active={!!pinState.pO3} onPress={() => changePin(3)}>
           <Text>Relé 3</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          onPress={() => changePin(4)}
-          style={[styles.button, { backgroundColor: pinState.pO4 ? '#48ef1f' : '#ccc' }]}
-        >
+        </Button>
+        <Button active={!!pinState.pO4} onPress={() => changePin(4)}>
           <Text>Relé 4</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          onPress={() => changePin(5)}
-          style={[styles.button, { backgroundColor: pinState.pO5 ? '#48ef1f' : '#ccc' }]}
-        >
+        </Button>
+        <Button active={!!pinState.pO5} onPress={() => changePin(5)}>
           <Text>Relé 5</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          onPress={() => changePin(6)}
-          style={[styles.button, { backgroundColor: pinState.pO6 ? '#48ef1f' : '#ccc' }]}
-        >
+        </Button>
+        <Button active={!!pinState.pO6} onPress={() => changePin(6)}>
           <Text>Relé 6</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          onPress={() => changePin(7)}
-          style={[styles.button, { backgroundColor: pinState.pO7 ? '#48ef1f' : '#ccc' }]}
-        >
+        </Button>
+        <Button active={!!pinState.pO7} onPress={() => changePin(7)}>
           <Text>Relé 7</Text>
-        </TouchableOpacity>
+        </Button>
       </View>
     </Container>
   )
