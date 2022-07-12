@@ -11,9 +11,10 @@ interface IPinState {
   pO5: number
   pO6: number
   pO7: number
+  timestamp: Number
 }
 
-const defaultPinState = { pO1: 0, pO2: 0, pO3: 0, pO4: 0, pO5: 0, pO6: 0, pO7: 0 }
+const defaultPinState = { pO1: 0, pO2: 0, pO3: 0, pO4: 0, pO5: 0, pO6: 0, pO7: 0, timestamp: 0 }
 const topic = 'ngkKzLHfUh@5C:CF:7F:4C:4C:1E'
 
 export function Dashboard() {
@@ -23,9 +24,10 @@ export function Dashboard() {
   function changePin(pin: Number) {
     const state = { ...defaultPinState, ...pinState }
     state[`pO${pin}`] = !state[`pO${pin}`] ? 1 : 0
+    state.timestamp = new Date().getTime()
     setPinState(state)
 
-    const message = JSON.stringify({ action: 'syncPinState', payload: { ...state } })
+    const message = JSON.stringify({ action: 'syncPinState', payload: state })
     if (isConnected) client.send(topic, message, 1, true)
   }
 
@@ -33,7 +35,11 @@ export function Dashboard() {
     client.onConnectionLost = () => setIsConnected(false)
     client.onMessageArrived = (message) => {
       const { action, payload } = JSON.parse(message.payloadString)
-      if (action === 'syncPinState') setPinState(payload)
+      if (action === 'syncPinState')
+        setPinState((old) => {
+          if (payload.timestamp > old.timestamp) return payload
+          return old
+        })
     }
 
     if (!isConnected) {
